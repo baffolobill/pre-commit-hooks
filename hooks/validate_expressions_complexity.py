@@ -183,7 +183,10 @@ def get_file_errors(
         else:
             if (
                 complexity > max_expression_complexity
-                and '# noqa' not in file_lines[expression.lineno - 1]
+                and not (
+                    '# noqa' in file_lines[expression.lineno - 1]
+                    or '# noqa' in file_lines[expression.end_lineno - 1]
+                )
             ):
                 yield '{0}:{1} expression is too complex ({2}>{3})'.format(
                     pyfilepath, expression.lineno,

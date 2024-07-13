@@ -1,3 +1,18 @@
+# Причина fork-a
+
+В моем случае потребовалось ставить `# noqa` в конце выражения:
+```python
+queryset = Model.objects\
+    custom_filter()\
+    custom_filter_2()\
+    custom_filter_3()\
+    custom_filter_4()  # noqa: ignore complex expression
+```
+
+Теперь ast позволяет получить последнюю строку выражения и я добавил поиск
+`# noqa` в том числе в последней строке выражения.
+
+
 # Pre Commit Hooks
 
 This repo contains BestDoctor's pre-commit hooks for python projects.
