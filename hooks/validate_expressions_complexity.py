@@ -9,6 +9,26 @@ from hooks.utils.ast_helpers import get_ast_tree_with_content, is_django_orm_que
 from hooks.utils.pre_commit import get_input_files
 
 
+# Build the simple_type tuple based on Python version
+_simple_types = [
+    ast.Name, ast.Import, ast.Bytes, ast.Nonlocal,
+    ast.ImportFrom, ast.Pass, ast.Raise, ast.Break, ast.Continue, type(None),
+    ast.Ellipsis,
+]
+
+# Add deprecated types if they exist (Python < 3.12)
+if hasattr(ast, 'Str'):
+    _simple_types.append(ast.Str)
+if hasattr(ast, 'Num'):
+    _simple_types.append(ast.Num)
+if hasattr(ast, 'NameConstant'):
+    _simple_types.append(ast.NameConstant)
+
+# Add ast.Constant for Python 3.8+ (replaces Str, Num, NameConstant)
+if hasattr(ast, 'Constant'):
+    _simple_types.append(ast.Constant)
+
+
 class BaseAstNodeError(Exception):
     def __init__(self, message: str, node: ast.AST) -> None:
         super().__init__(message)
@@ -46,14 +66,7 @@ NODE_TYPES_BY_CLASS = [
     (ast.Lambda, 'lambda'),
     ((ast.List, ast.Set, ast.Tuple), 'sized'),
     ((ast.ListComp, ast.GeneratorExp, ast.SetComp), 'simple_comprehensions'),
-    (
-        (
-            ast.Name, ast.Import, ast.Str, ast.Num, ast.NameConstant, ast.Bytes, ast.Nonlocal,
-            ast.ImportFrom, ast.Pass, ast.Raise, ast.Break, ast.Continue, type(None),
-            ast.Ellipsis,
-        ),
-        'simple_type',
-    ),
+    (tuple(_simple_types), 'simple_type'),
     (ast.NamedExpr, 'walrus'),
     (ast.Subscript, 'subscript'),
     (ast.Slice, 'slice'),
@@ -183,10 +196,7 @@ def get_file_errors(
         else:
             if (
                 complexity > max_expression_complexity
-                and not (
-                    '# noqa' in file_lines[expression.lineno - 1]
-                    or '# noqa' in file_lines[expression.end_lineno - 1]
-                )
+                and '# noqa' not in file_lines[expression.lineno - 1]
             ):
                 yield '{0}:{1} expression is too complex ({2}>{3})'.format(
                     pyfilepath, expression.lineno,
