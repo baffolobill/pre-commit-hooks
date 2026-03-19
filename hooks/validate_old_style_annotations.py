@@ -19,7 +19,7 @@ def main() -> Optional[int]:
             [n.annotation for n in ast.walk(ast_tree) if isinstance(n, ast.arg) and n.annotation],
             [n.returns for n in ast.walk(ast_tree) if isinstance(n, ast.FunctionDef) and n.returns],
         ):
-            if isinstance(annotated, ast.Str):
+            if isinstance(annotated, ast.Constant) and isinstance(annotated.value, str):
                 has_errors = True
                 print(  # noqa: T001
                     '{0}:{1} old style annotation'.format(

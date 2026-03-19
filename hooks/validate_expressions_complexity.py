@@ -11,9 +11,8 @@ from hooks.utils.pre_commit import get_input_files
 
 # Build the simple_type tuple based on Python version
 _simple_types = [
-    ast.Name, ast.Import, ast.Bytes, ast.Nonlocal,
+    ast.Name, ast.Import, ast.Nonlocal,
     ast.ImportFrom, ast.Pass, ast.Raise, ast.Break, ast.Continue, type(None),
-    ast.Ellipsis,
 ]
 
 # Add deprecated types if they exist (Python < 3.12)
@@ -23,10 +22,23 @@ if hasattr(ast, 'Num'):
     _simple_types.append(ast.Num)
 if hasattr(ast, 'NameConstant'):
     _simple_types.append(ast.NameConstant)
+if hasattr(ast, 'Bytes'):
+    _simple_types.append(ast.Bytes)
+if hasattr(ast, 'Ellipsis'):
+    _simple_types.append(ast.Ellipsis)
 
-# Add ast.Constant for Python 3.8+ (replaces Str, Num, NameConstant)
+# Add ast.Constant for Python 3.8+ (replaces Str, Num, NameConstant, Bytes, Ellipsis)
 if hasattr(ast, 'Constant'):
     _simple_types.append(ast.Constant)
+
+# ast.Index was removed in Python 3.9; in newer versions slice nodes are used directly
+_item_with_value_types = [
+    ast.Expr, ast.Return, ast.Starred,
+    ast.Yield, ast.YieldFrom, ast.FormattedValue,
+    ast.Await,
+]
+if hasattr(ast, 'Index'):
+    _item_with_value_types.append(ast.Index)
 
 
 class BaseAstNodeError(Exception):
@@ -52,14 +64,7 @@ NODE_TYPES_BY_CLASS = [
     (ast.Delete, 'delete'),
     (ast.Dict, 'dict'),
     (ast.DictComp, 'dict_comprehension'),
-    (
-        (
-            ast.Expr, ast.Return, ast.Starred, ast.Index,
-            ast.Yield, ast.YieldFrom, ast.FormattedValue,
-            ast.Await,
-        ),
-        'item_with_value',
-    ),
+    (tuple(_item_with_value_types), 'item_with_value'),
     (ast.Global, 'global'),
     (ast.IfExp, 'if_expr'),
     (ast.JoinedStr, 'fstring'),

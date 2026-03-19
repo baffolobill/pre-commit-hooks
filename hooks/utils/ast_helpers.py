@@ -111,6 +111,10 @@ def extract_all_variable_names(ast_tree: ast.AST) -> List[Tuple[str, ast.AST]]:
     return var_info
 
 
+# ast.TryStar was added in Python 3.11 for try/except* (PEP 654)
+_try_node_types: tuple = (ast.Try, ast.TryStar) if hasattr(ast, 'TryStar') else (ast.Try,)
+
+
 def iterate_over_expressions(node: ast.AST) -> Iterable[ast.AST]:
     nodes_with_subnodes = (
         ast.AsyncFunctionDef, ast.FunctionDef,
@@ -118,7 +122,7 @@ def iterate_over_expressions(node: ast.AST) -> Iterable[ast.AST]:
         ast.AsyncFor, ast.For,
         ast.Module,
         ast.ClassDef,
-        ast.Try,
+        *_try_node_types,
         ast.AsyncWith, ast.With,
         ast.While,
     )
@@ -127,7 +131,7 @@ def iterate_over_expressions(node: ast.AST) -> Iterable[ast.AST]:
     elif isinstance(node, (ast.AsyncFor, ast.For)):
         yield node.iter
     nodes_to_iter = node.body  # type: ignore
-    if isinstance(node, ast.Try):
+    if isinstance(node, _try_node_types):
         nodes_to_iter = itertools.chain(node.body, node.finalbody, *[n.body for n in node.handlers])
     for child_node in nodes_to_iter:
         if isinstance(child_node, nodes_with_subnodes):
